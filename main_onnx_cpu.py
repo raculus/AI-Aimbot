@@ -13,7 +13,6 @@ from utils.general import (cv2, non_max_suppression, xyxy2xywh)
 import dxcam
 import torch
 
-
 def main():
     # Portion of screen to be captured (This forms a square/rectangle around the center of screen)
     screenShotHeight = 320
@@ -24,22 +23,22 @@ def main():
     aaRightShift = 0
 
     # Autoaim mouse movement amplifier
-    aaMovementAmp = .8
+    aaMovementAmp = 0.8
 
     # Person Class Confidence
-    confidence = 0.4
+    confidence = 0.6
 
     # What key to press to quit and shutdown the autoaim
     aaQuitKey = "Q"
 
     # If you want to main slightly upwards towards the head
-    headshot_mode = True
+    headshot_mode = False
 
     # Displays the Corrections per second in the terminal
-    cpsDisplay = True
+    cpsDisplay = False
 
     # Set to True if you want to get the visuals
-    visuals = False
+    visuals = True
 
     # Selecting the correct game window
     try:
@@ -62,7 +61,7 @@ def main():
         print("Failed to select game window: {}".format(e))
         return
 
-    # Activate that Window
+        # Activate that Window
     activationRetries = 30
     activationSuccess = False
     while (activationRetries > 0):
@@ -87,7 +86,7 @@ def main():
     if activationSuccess == False:
         return
     print("Successfully activated the game window...")
-
+    
     # Setting up the screen shots
     sctArea = {"mon": 1, "top": videoGameWindow.top + (videoGameWindow.height - screenShotHeight) // 2,
                          "left": aaRightShift + ((videoGameWindow.left + videoGameWindow.right) // 2) - (screenShotWidth // 2),
@@ -110,7 +109,7 @@ def main():
          If that doesn't work, then read this: https://github.com/SerpentAI/D3DShot/wiki/Installation-Note:-Laptops
         2. The game is an exclusive full screen game. Set it to windowed mode.""")
         return
-    camera.start(target_fps=160, video_mode=True)
+    camera.start(target_fps=85, video_mode=True)
 
     print(dxcam.device_info())
 
@@ -191,8 +190,9 @@ def main():
 
             mouseMove = [xMid - cWidth, (yMid - headshot_offset) - cHeight]
 
+
             # Moving the mouse
-            if win32api.GetKeyState(0x14):
+            if win32api.GetAsyncKeyState(0x01):
                 win32api.mouse_event(win32con.MOUSEEVENTF_MOVE, int(
                     mouseMove[0] * aaMovementAmp), int(mouseMove[1] * aaMovementAmp), 0, 0)
             last_mid_coord = [xMid, yMid]
@@ -242,11 +242,4 @@ def main():
 
 
 if __name__ == "__main__":
-    try:
-        main()
-    except Exception as e:
-        import traceback
-        print("Please read the below message and think about how it could be solved before posting it on discord.")
-        traceback.print_exception(e)
-        print(str(e))
-        print("Please read the above message and think about how it could be solved before posting it on discord.")
+    main()
