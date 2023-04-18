@@ -12,106 +12,84 @@ import pandas as pd
 from utils.general import (cv2, non_max_suppression, xyxy2xywh)
 import dxcam
 import torch
+import configparser
+
+config = configparser.ConfigParser()
+config.read('config.cfg')
+config = config['DEFAULT']
+
+class Rectangle:
+    def __init__(self, width, height):
+        self.width = width
+        self.height = height
+        self.left = 0
+        self.right = width
+        self.top = 0
+        self.bottom = height
 
 def main():
-    # Portion of screen to be captured (This forms a square/rectangle around the center of screen)
-    screenShotHeight = 320
-    screenShotWidth = 320
+    aimKey = config.get('aimkey', '0')
+    aimKey = [int(key) for key in aimKey.split(',')]
+
+    screenWidth = config.getint('screenWidth', 320)
+    screenHeight = config.getint('screenHeight', 320)
+
+    # Portion of screen to be captured (This forms a square/rectangle around the center of screen)    
+    fovWidth = config.getint('fovWidth', 320)
+    fovHeight = config.getint('fovHeight', 320)
 
     # For use in games that are 3rd person and character model interferes with the autoaim
     # EXAMPLE: Fortnite and New World
-    aaRightShift = 0
+    aaRightShift = config.getint('aaRightShift', 0)
 
     # Autoaim mouse movement amplifier
-    aaMovementAmp = 0.8
+    sensX = config.getfloat('sensX', 0.8)
+    sensY = config.getfloat('sensY', 0.8)
 
     # Person Class Confidence
-    confidence = 0.6
+    confidence = config.getfloat('confidence', 0.6)
 
     # What key to press to quit and shutdown the autoaim
-    aaQuitKey = "Q"
+    quitKey = (config.getint('quitKey', 0))
 
     # If you want to main slightly upwards towards the head
-    headshot_mode = False
+    headshot_mode = config.getboolean('headshot_mode', False)
+    headshot_offset = config.getfloat('headshot_offset', 0.38)
 
     # Displays the Corrections per second in the terminal
-    cpsDisplay = False
+    cpsDisplay = config.getboolean('cpsDisplay', False)
 
     # Set to True if you want to get the visuals
-    visuals = True
+    visuals = config.getboolean('visuals', True)
 
-    # Selecting the correct game window
-    try:
-        videoGameWindows = pygetwindow.getAllWindows()
-        print("=== All Windows ===")
-        for index, window in enumerate(videoGameWindows):
-            # only output the window if it has a meaningful title
-            if window.title != "":
-                print("[{}]: {}".format(index, window.title))
-        # have the user select the window they want
-        try:
-            userInput = int(input(
-                "Please enter the number corresponding to the window you'd like to select: "))
-        except ValueError:
-            print("You didn't enter a valid number. Please try again.")
-            return
-        # "save" that window as the chosen window for the rest of the script
-        videoGameWindow = videoGameWindows[userInput]
-    except Exception as e:
-        print("Failed to select game window: {}".format(e))
-        return
+    target_fps = config.getint('target_fps', 60)
 
-        # Activate that Window
-    activationRetries = 30
-    activationSuccess = False
-    while (activationRetries > 0):
-        try:
-            videoGameWindow.activate()
-            activationSuccess = True
-            break
-        except pygetwindow.PyGetWindowException as we:
-            print("Failed to activate game window: {}".format(str(we)))
-            print("Trying again... (you should switch to the game now)")
-        except Exception as e:
-            print("Failed to activate game window: {}".format(str(e)))
-            print("Read the relevant restrictions here: https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setforegroundwindow")
-            activationSuccess = False
-            activationRetries = 0
-            break
-        # wait a little bit before the next try
-        time.sleep(3.0)
-        activationRetries = activationRetries - 1
-    # if we failed to activate the window then we'll be unable to send input to it
-    # so just exit the script now
-    if activationSuccess == False:
-        return
-    print("Successfully activated the game window...")
-    
+
+    videoGameWindow = Rectangle(screenWidth, screenHeight)
+
     # Setting up the screen shots
-    sctArea = {"mon": 1, "top": videoGameWindow.top + (videoGameWindow.height - screenShotHeight) // 2,
-                         "left": aaRightShift + ((videoGameWindow.left + videoGameWindow.right) // 2) - (screenShotWidth // 2),
-                         "width": screenShotWidth,
-                         "height": screenShotHeight}
+    sctArea = {"mon": 1, "top": videoGameWindow.top + (videoGameWindow.height - fovHeight) // 2,
+                         "left": aaRightShift + ((videoGameWindow.left + videoGameWindow.right) // 2) - (fovWidth // 2),
+                         "width": fovWidth,
+                         "height": fovHeight}
 
     # Starting screenshoting engine
     left = aaRightShift + \
-        ((videoGameWindow.left + videoGameWindow.right) // 2) - (screenShotWidth // 2)
+        ((videoGameWindow.left + videoGameWindow.right) // 2) - (fovWidth // 2)
     top = videoGameWindow.top + \
-        (videoGameWindow.height - screenShotHeight) // 2
+        (videoGameWindow.height - fovHeight) // 2
     right, bottom = left + 320, top + 320
 
     region = (left, top, right, bottom)
 
-    camera = dxcam.create(device_idx=0, region=region, max_buffer_len=5120)
+    camera = dxcam.create(device_idx=0, region=region, max_buffer_len=5120, output_color="BGR")
     if camera is None:
         print("""DXCamera failed to initialize. Some common causes are:
         1. You are on a laptop with both an integrated GPU and discrete GPU. Go into Windows Graphic Settings, select python.exe and set it to Power Saving Mode.
          If that doesn't work, then read this: https://github.com/SerpentAI/D3DShot/wiki/Installation-Note:-Laptops
         2. The game is an exclusive full screen game. Set it to windowed mode.""")
         return
-    camera.start(target_fps=85, video_mode=True)
-
-    print(dxcam.device_info())
+    camera.start(target_fps=target_fps, video_mode=True)
 
     # Calculating the center Autoaim box
     cWidth = sctArea["width"] / 2
@@ -126,12 +104,9 @@ def main():
     ort_sess = ort.InferenceSession('yolov5s320.onnx', sess_options=so, providers=[
                                     'CPUExecutionProvider'])
 
-    # Used for colors drawn on bounding boxes
-    COLORS = np.random.uniform(0, 255, size=(1500, 3))
-
     # Main loop Quit if Q is pressed
     last_mid_coord = None
-    while win32api.GetAsyncKeyState(ord(aaQuitKey)) == 0:
+    while win32api.GetAsyncKeyState(quitKey) == 0:
 
         # Getting Frame
         npImg = np.array(camera.get_latest_frame())
@@ -176,25 +151,34 @@ def main():
                 # Take distance between current person mid coordinate and last person mid coordinate
                 targets['dist'] = np.linalg.norm(
                     targets.iloc[:, [0, 1]].values - targets.iloc[:, [4, 5]], axis=1)
-                targets.sort_values(by="dist", ascending=False)
+                targets.sort_values(by="dist", ascending=True)
 
             # Take the first person that shows up in the dataframe (Recall that we sort based on Euclidean distance)
-            xMid = targets.iloc[0].current_mid_x + aaRightShift
-            yMid = targets.iloc[0].current_mid_y
+            min_diff = float('inf')
+            idx = 0
+            for i in range(len(targets)):
+                diff = abs(targets.iloc[i].current_mid_x - cWidth)
+                if diff < min_diff:
+                    min_diff = diff
+                    idx = i
 
-            box_height = targets.iloc[0].height
+            xMid = targets.iloc[idx].current_mid_x + aaRightShift
+            yMid = targets.iloc[idx].current_mid_y
+
+            box_height = targets.iloc[idx].height
             if headshot_mode:
-                headshot_offset = box_height * 0.38
+                offset = box_height * headshot_offset
             else:
-                headshot_offset = box_height * 0.2
+                offset = box_height * 0.2
 
-            mouseMove = [xMid - cWidth, (yMid - headshot_offset) - cHeight]
-
+            dx = xMid - cWidth
+            dy = (yMid - offset) - cHeight
+            mouseMove = [dx, dy]
 
             # Moving the mouse
-            if win32api.GetAsyncKeyState(0x01):
+            if any(win32api.GetAsyncKeyState(key) for key in aimKey):
                 win32api.mouse_event(win32con.MOUSEEVENTF_MOVE, int(
-                    mouseMove[0] * aaMovementAmp), int(mouseMove[1] * aaMovementAmp), 0, 0)
+                    mouseMove[0] * sensX), int(mouseMove[1] * sensY), 0, 0)
             last_mid_coord = [xMid, yMid]
 
         else:
@@ -208,18 +192,22 @@ def main():
                 halfH = round(targets["height"][i] / 2)
                 midX = targets['current_mid_x'][i]
                 midY = targets['current_mid_y'][i]
-                (startX, startY, endX, endY) = int(midX + halfW), int(midY +
-                                                                      halfH), int(midX - halfW), int(midY - halfH)
+                (startX, startY, endX, endY) = int(midX + halfW), int(midY + halfH), int(midX - halfW), int(midY - halfH)
 
-                idx = 0
                 # draw the bounding box and label on the frame
-                label = "{}: {:.2f}%".format(
-                    "Human", targets["confidence"][i] * 100)
+                label = "{} {}: {:.2f}%".format(
+                    "Human", i,targets["confidence"][i] * 100)
+                color = (0,0,255)
+                if(idx==i):
+                    color = (0,255,0)
                 cv2.rectangle(npImg, (startX, startY), (endX, endY),
-                              COLORS[idx], 2)
+                              color, 2)
                 y = startY - 15 if startY - 15 > 15 else startY + 15
                 cv2.putText(npImg, label, (startX, y),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, COLORS[idx], 2)
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255), 1)
+                targetCenter = (int((startX+endX)/2), int((startY+endY+11)/2-offset))
+                center = (int(cWidth), int(cHeight+11))                
+                cv2.line(npImg, center, targetCenter, color, 1)
 
         # Forced garbage cleanup every second
         count += 1
@@ -237,9 +225,17 @@ def main():
             cv2.imshow('Live Feed', npImg)
             if (cv2.waitKey(1) & 0xFF) == ord('q'):
                 exit()
-
     camera.stop()
 
 
+main()
+
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        import traceback
+        print("Please read the below message and think about how it could be solved before posting it on discord.")
+        traceback.print_exception(e)
+        print(str(e))
+        print("Please read the above message and think about how it could be solved before posting it on discord.")
