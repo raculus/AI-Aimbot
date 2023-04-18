@@ -13,12 +13,9 @@ import pandas as pd
 from utils.general import (cv2, non_max_suppression, xyxy2xywh)
 import dxcam
 import torch
-import configparser
-
-
-config = configparser.ConfigParser()
-config.read('config.cfg')
-config = config['DEFAULT']
+import threading
+import random
+from Config import Config
 
 class Rectangle:
     def __init__(self, width, height):
@@ -30,57 +27,48 @@ class Rectangle:
         self.bottom = height
 
 
+def ConfigLoad():
+    config = Config('config.cfg')
+    print('설정을 불러왔습니다: ' + time.strftime('%H:%M:%S'))
+    return config
+class Worker(threading.Thread):
+    def __init__(self, name):
+        super().__init__()
+        self.name = name            # thread 이름 지정
+
+    def run(self):
+        threadName = threading.currentThread().getName()
+        if threadName == "Triggerbot":
+            Click()
+
+
+def MouseMove(x, y):
+    win32api.mouse_event(win32con.MOUSEEVENTF_MOVE, int(
+    x), int(y), 0, 0)
+
+def Click():
+    win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0)
+    delay = random.uniform(0.2, 0.3)
+    time.sleep(delay)
+    win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0, 0, 0)
+    delay = random.uniform(0.2, 0.3)
+    time.sleep(delay)
+
 def main():
-    aimKey = config.get('aimkey', '0')
-    aimKey = [int(key) for key in aimKey.split(',')]
+    config = ConfigLoad()
 
-    screenWidth = config.getint('screenWidth', 320)
-    screenHeight = config.getint('screenHeight', 320)
-
-    # Portion of screen to be captured (This forms a square/rectangle around the center of screen)    
-    fovWidth = config.getint('fovWidth', 320)
-    fovHeight = config.getint('fovHeight', 320)
-
-    # For use in games that are 3rd person and character model interferes with the autoaim
-    # EXAMPLE: Fortnite and New World
-    aaRightShift = config.getint('aaRightShift', 0)
-
-    # Autoaim mouse movement amplifier
-    sensX = config.getfloat('sensX', 0.8)
-    sensY = config.getfloat('sensY', 0.8)
-
-    # Person Class Confidence
-    confidence = config.getfloat('confidence', 0.6)
-
-    # What key to press to quit and shutdown the autoaim
-    quitKey = (config.getint('quitKey', 0))
-
-    # If you want to main slightly upwards towards the head
-    headshot_mode = config.getboolean('headshot_mode', False)
-    headshot_offset = config.getfloat('headshot_offset', 0.38)
-
-    # Displays the Corrections per second in the terminal
-    cpsDisplay = config.getboolean('cpsDisplay', False)
-
-    # Set to True if you want to get the visuals
-    visuals = config.getboolean('visuals', True)
-
-    target_fps = config.getint('target_fps', 60)
-
-
-    videoGameWindow = Rectangle(screenWidth, screenHeight)
-
+    videoGameWindow = Rectangle(config.screenWidth, config.screenHeight)
     # Setting up the screen shots
-    sctArea = {"mon": 1, "top": videoGameWindow.top + (videoGameWindow.height - fovHeight) // 2,
-                         "left": aaRightShift + ((videoGameWindow.left + videoGameWindow.right) // 2) - (fovWidth // 2),
-                         "width": fovWidth,
-                         "height": fovHeight}
+    sctArea = {"mon": 1, "top": videoGameWindow.top + (videoGameWindow.height - config.fovHeight) // 2,
+                         "left": config.aaRightShift + ((videoGameWindow.left + videoGameWindow.right) // 2) - (config.fovWidth // 2),
+                         "width": config.fovWidth,
+                         "height": config.fovHeight}
 
     # Starting screenshoting engine
-    left = aaRightShift + \
-        ((videoGameWindow.left + videoGameWindow.right) // 2) - (fovWidth // 2)
+    left = config.aaRightShift + \
+        ((videoGameWindow.left + videoGameWindow.right) // 2) - (config.fovWidth // 2)
     top = videoGameWindow.top + \
-        (videoGameWindow.height - fovHeight) // 2
+        (videoGameWindow.height - config.fovHeight) // 2
     right, bottom = left + 320, top + 320
 
     region = (left, top, right, bottom)
@@ -92,7 +80,7 @@ def main():
          If that doesn't work, then read this: https://github.com/SerpentAI/D3DShot/wiki/Installation-Note:-Laptops
         2. The game is an exclusive full screen game. Set it to windowed mode.""")
         return
-    camera.start(target_fps=target_fps, video_mode=True)
+    camera.start(target_fps=config.target_fps, video_mode=True)
 
     # Calculating the center Autoaim box
     cWidth = sctArea["width"] / 2
@@ -109,7 +97,9 @@ def main():
 
     # Main loop Quit if Q is pressed
     last_mid_coord = None
-    while win32api.GetAsyncKeyState(quitKey) == 0:
+    while win32api.GetAsyncKeyState(config.quitKey) == 0:
+        if(win32api.GetAsyncKeyState(config.reloadKey)):
+            config = ConfigLoad()
 
         # Getting Frame
         npImg = np.array(camera.get_latest_frame())
@@ -127,7 +117,7 @@ def main():
         im = torch.from_numpy(outputs[0]).to('cpu')
 
         pred = non_max_suppression(
-            im, confidence, confidence, 0, False, max_det=10)
+            im, config.confidence, config.confidence, 0, False, max_det=10)
 
         targets = []
         for i, det in enumerate(pred):
@@ -160,35 +150,39 @@ def main():
             min_diff = float('inf')
             idx = 0
             for i in range(len(targets)):
-                diff = abs(targets.iloc[i].current_mid_x - cWidth)
+                diff = abs(targets.iloc[i].current_mid_x - cWidth)                
                 if diff < min_diff:
                     min_diff = diff
-                    idx = i
+                    idx = i            
 
-            xMid = targets.iloc[idx].current_mid_x + aaRightShift
+            xMid = targets.iloc[idx].current_mid_x + config.aaRightShift
             yMid = targets.iloc[idx].current_mid_y
 
             box_height = targets.iloc[idx].height
-            if headshot_mode:
-                offset = box_height * headshot_offset
+            if config.headshot_mode:
+                offset = box_height * config.headshot_offset
             else:
                 offset = box_height * 0.2
 
             dx = xMid - cWidth
             dy = (yMid - offset) - cHeight
-            mouseMove = [dx, dy]
 
             # Moving the mouse
-            if any(win32api.GetAsyncKeyState(key) for key in aimKey):
-                win32api.mouse_event(win32con.MOUSEEVENTF_MOVE, int(
-                    mouseMove[0] * sensX), int(mouseMove[1] * sensY), 0, 0)
+            if any(win32api.GetAsyncKeyState(key) for key in config.aimKey):
+                MouseMove(dx * config.sensX, dy * config.sensY)
+                if config.useTriggerbot:
+                    if any(win32api.GetAsyncKeyState(key) for key in config.triggerKey):
+                        if abs(dx) <= config.triggerRangeX and abs(dy) <= config.triggerRangeY:
+                            triggerThread = Worker("Triggerbot")
+                            triggerThread.daemon = True
+                            triggerThread.start()
             last_mid_coord = [xMid, yMid]
 
         else:
             last_mid_coord = None
 
         # See what the bot sees
-        if visuals:
+        if config.visuals:
             # Loops over every item identified and draws a bounding box
             for i in range(0, len(targets)):
                 halfW = round(targets["width"][i] / 2)
@@ -208,14 +202,14 @@ def main():
                 y = startY - 15 if startY - 15 > 15 else startY + 15
                 cv2.putText(npImg, label, (startX, y),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255), 1)
-                targetCenter = (int((startX+endX)/2), int((startY+endY+11)/2-offset))
-                center = (int(cWidth), int(cHeight+11))                
+                targetCenter = (int((startX+endX)/2), int((startY+endY)/2-offset))
+                center = (int(cWidth), int(cHeight))                
                 cv2.line(npImg, center, targetCenter, color, 1)
 
         # Forced garbage cleanup every second
         count += 1
         if (time.time() - sTime) > 1:
-            if cpsDisplay:
+            if config.cpsDisplay:
                 print("CPS: {}".format(count))
             count = 0
             sTime = time.time()
@@ -224,7 +218,7 @@ def main():
             # gc.collect(generation=0)
 
         # See visually what the Aimbot sees
-        if visuals:
+        if config.visuals:
             cv2.imshow('Live Feed', npImg)
             if (cv2.waitKey(1) & 0xFF) == ord('q'):
                 exit()
@@ -232,13 +226,3 @@ def main():
 
 
 main()
-
-if __name__ == "__main__":
-    try:
-        main()
-    except Exception as e:
-        import traceback
-        print("Please read the below message and think about how it could be solved before posting it on discord.")
-        traceback.print_exception(e)
-        print(str(e))
-        print("Please read the above message and think about how it could be solved before posting it on discord.")
