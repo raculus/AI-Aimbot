@@ -3,7 +3,7 @@
 # AI Aimbot - Massive Update
 
 <p float="left">
-    <img src="imgs/sa,pubg,ow,apex.PNG" width="50%">
+    <img src="imgs/sa,pubg,ow,apex.PNG" width="1000">
 </p>
 
 ## Table of Contents
