@@ -15,6 +15,7 @@ models/__pycache__
 venv
 
 *.bat
+*.ahk
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

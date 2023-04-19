@@ -1,9 +1,6 @@
 import onnxruntime as ort
 import numpy as np
 import cupy as cp
-import pyautogui
-import pygetwindow
-import gc
 import numpy as np
 import cv2
 import time
@@ -220,8 +217,6 @@ def main():
         # See visually what the Aimbot sees
         if config.visuals:
             cv2.imshow('Live Feed', npImg)
-            if (cv2.waitKey(1) & 0xFF) == ord('q'):
-                exit()
     camera.stop()
 
 
