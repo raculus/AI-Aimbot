@@ -1,13 +1,13 @@
 [![Pull Requests Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat)](http://makeapullrequest.com)
+
 # AI Aimbot - Massive Update
 
 <p float="left">
-    <img src="imgs/halo.PNG" width="200" />
-    <img src="imgs/valorant.PNG" width="200" /> 
-    <img src="imgs/csgo.PNG" width="200" />
+    <img src="imgs/sa,pubg,ow,apex.PNG" width="200">
 </p>
 
 ## Table of Contents
+
 - [AI Aimbot - Massive Update](#ai-aimbot---massive-update)
   - [Table of Contents](#table-of-contents)
   - [Intro](#intro)
@@ -15,7 +15,7 @@
   - [Configurable Settings](#configurable-settings)
   - [Current Stats](#current-stats)
   - [**Different Versions!!!**](#different-versions)
-      - [**TensorRT Setup help**](#tensorrt-setup-help)
+    - [**TensorRT Setup help**](#tensorrt-setup-help)
     - [REQUIREMENTS](#requirements)
     - [Pre-setup](#pre-setup)
     - [Run](#run)
@@ -23,15 +23,17 @@
     - [Add your own Model](#custom-models)
 
 ## Intro
+
 AI Aimbot works in any game with humanoid characters and utilizes YOLOv5 (ultralytics/yolov5). Mouse movements don't work in Valorant currently. It is currently 100% undetectable to anti-cheat systems due to it being visual-only in nature. You could be found cheating if you are manually reported by another player and your game is reviewed manually due to the botty looking aimming of an Aimbot.
 
 This is meant for educational purposed and to expose how poorly prepared game developers are with these new waves on AI based cheats. Please share with this with your friendly neighborhood game dev so they can start patching.
 
 Code is all in 1 file for easy of viewing and learning from.
 
-***Use at your own risk. If you get banned get rekted idiot***
+**_Use at your own risk. If you get banned get rekted idiot_**
 
 **Adhere to our GNU licence, come on we are a nonprofit.**<br />
+
 - free to use, sell, profit from, litterally anything you want to do with it
 - **credit MUST be given to RootKit for the underlying base code**
 
@@ -47,10 +49,12 @@ Watch the tensorrt setup/run tutorial - Comming soon...
 Join teh Discord - https://discord.gg/rootkitorg
 
 ## Known games that can identify it as a cheat
+
 Splitgate (discovered by ˞˞˞˞˞˞˞˞˞˞˞˞˞˞˞˞˞˞#2373 on discord 06/20/22)
 
 ## Configurable Settings
-*Default settings are good for most use cases. Read comments in code for more details.<br>
+
+\*Default settings are good for most use cases. Read comments in code for more details.<br>
 **CAPS_LOCK is the default for toggling on and off the autoaim functionality**
 
 `videoGameWindowTitle` - (CHANGES PER GAME) Window title of the game you want to play. Does not need to be the complete window title.
@@ -76,9 +80,11 @@ Splitgate (discovered by ˞˞˞˞˞˞˞˞˞˞˞˞˞˞˞˞˞˞#2373 on discord 06
 `aaDetectionBox` - Default should be kept unless you know what you are doing.
 
 ## Current Stats
+
 This bot's speed is VERY dependent on your hardware. We will update the model it uses for detection later with a faster one.
 
 Bot was tested on a:
+
 - AMD Ryzen 7 2700
 - 64 GB DDR4
 - Nvidia RTX 2080
@@ -88,7 +94,8 @@ We got anywhere from 15-60 corrections per second depending on the version used.
 ANYTHING dealing with Machine Learning can be funky with your computer. So if you keep getting CUDA errors, you may want to restart your PC in order to make sure everything resets properly.
 
 ## **Different Versions!!!**
-The guide below starting with *Pre-Setup** will get the `main.py` version running, **BUT** the `main.py` IS THE SLOWEST!!!
+
+The guide below starting with \*Pre-Setup** will get the `main.py` version running, **BUT\*\* the `main.py` IS THE SLOWEST!!!
 
 Also there is a `custom` folder with user submitted models you can try out. Go explore them and see what you think. Make sure you shout out the dev if you like what they have done!
 
@@ -104,39 +111,43 @@ If you are comfortable with your skills, you can run the other 4 versions. You c
 
 `main_onnx_amd.py` will give you up to a 100% performance boost. You will need to run `pip install -r requirements_onnx_amd.txt`.
 
-`main_tensorrt_gpu.py` is the BEST. It gives over a 200% performance boost. 
+`main_tensorrt_gpu.py` is the BEST. It gives over a 200% performance boost.
+
 #### **TensorRT Setup help**
+
 In our testing, the screenshot engine was the bottleneck. Tensorrt is only available via download from NVIDIA's site.
 
 You will need to make an account. Just go to this link and get `TensorRT 8.5 GA Update 2`. https://developer.nvidia.com/tensorrt You will need to install it via the .whl file they give you. You may also need https://developer.nvidia.com/cudnn.
 
 Sometimes you will need to remake the .engine model. To do this you need to visit the [YoloV5's Github repo](https://github.com/ultralytics/yolov5) and download it. Then execute the `export.py` script in the repo with the command below. This can take up to 20 minutes and have no visual feedback. It's not frozen, just looks like it.
 
-NOTE, you will need to use the provided or download a new version of the yolov5 weights (aka the .pt file). We use the small model, but with tensorrt, you should be able to use a larger model. 
+NOTE, you will need to use the provided or download a new version of the yolov5 weights (aka the .pt file). We use the small model, but with tensorrt, you should be able to use a larger model.
 
 `python .\export.py --weights ./yolov5s.pt --include engine --half --imgsz 320 320 --device 0`
 
 ### REQUIREMENTS
+
 - Nvidia RTX 2050 or higher
 - One of the following
   - Nvidia CUDA Toolkit 11.6 (Most compatibility) (https://developer.nvidia.com/cuda-11-6-0-download-archive)
   - Nvidia CUDA Toolkit 11.7 (No onnx support currently, faster) (https://developer.nvidia.com/cuda-11-7-0-download-archive)
 
 ### Pre-setup
+
 1. Unzip the file and place the folder somewhere easy to access
 
 2. Make sure you have a pet Python (aka install python, use 3.10) - https://www.python.org/
 
-***IF YOU GET THE FOLLOWING ERROR `python is not recognized as an internal or external command, operable program, or batch file` Watch This: https://youtu.be/E2HvWhhAW0g***
+**_IF YOU GET THE FOLLOWING ERROR `python is not recognized as an internal or external command, operable program, or batch file` Watch This: https://youtu.be/E2HvWhhAW0g_**
 
-***IF YOU GET THE FOLLOWING ERROR `pip is not recognized as an internal or external command, operable program, or batch file` Watch This: https://youtu.be/zWYvRS7DtOg***
+**_IF YOU GET THE FOLLOWING ERROR `pip is not recognized as an internal or external command, operable program, or batch file` Watch This: https://youtu.be/zWYvRS7DtOg_**
 
 3. (Windows Users) Open up either `PowerShell` or `Command Prompt`. This can be done by pressing the Windows Key and searching for one of those applications.
 
 4. To install `PyTorch` go to this website, https://pytorch.org/get-started/locally/, and Select the stable build, your OS, Pip, Python and CUDA version you installed. Then select the text that is generated and run that command.
 
+5. Copy and paste the commands below into your terminal. This will install the Open Source packages needed to run the program. You will need to `cd` into the downloaded directory first. Follow step 2 in the Run section below if you need help.
 
-6. Copy and paste the commands below into your terminal. This will install the Open Source packages needed to run the program. You will need to `cd` into the downloaded directory first. Follow step 2 in the Run section below if you need help.
 ```
 pip install -r requirements.txt
 
@@ -144,6 +155,7 @@ pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://
 ```
 
 ### Run
+
 If you have python and the packages you are good to go. Load up any game on your MAIN monitor and load into a game.
 
 1. (Windows Users) Open up either `PowerShell` or `Command Prompt`. This can be done by pressing the Windows Key and searching for one of those applications.
@@ -161,22 +173,25 @@ If you have python and the packages you are good to go. Load up any game on your
 7. Pressing `q` at anytime will completely quit the program
 
 ## Community Based
+
 We are a community based nonprofit. We are always open to pull requests on any of our repos. You will always be given credit for all of you work. Depending on what you contribute, we will give you any revenue earned on your contributions 💰💰💰!
 
 **We are always looking for new Volunteers to join our Champions!
 If you have any ideas for videos or programs, let us know!**
 
 ### Custom Models
+
 If you trained your own model, then submit a PR with it!
 
 Just add a folder to the `custom` folder with your github name and inside put your `model(s)` and a `readme.md` explaining what they are and how you made them.
 
 For an example, look at the `example-user` folder in `custom`.
 
-Another view of the layout - 
+Another view of the layout -
 
 ```
 /custom/
   exampleUsername/
     model_general.pt
     readme.md
+```
